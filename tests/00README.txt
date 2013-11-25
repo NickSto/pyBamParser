@@ -1,0 +1,1 @@
+The input test files are copies of the canonical versions, which are kept track of in ../../testdata (indels/testdata).
