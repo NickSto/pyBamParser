@@ -12,7 +12,7 @@ def main():
     'BAMRead.indel_at':BAMRead_indel_at,
   }
 
-  OPT_DEFAULTS = {'str':'', 'int':0, 'bool':False}
+  OPT_DEFAULTS = {'indels_file':'', 'int':0, 'bool':False}
   USAGE = "USAGE: %prog [options] function.to.test reads.bam"
   DESCRIPTION = """Run test on a given function and input BAM and print results.
   Give one of the following function names: """+', '.join(FUNCTIONS)
@@ -20,10 +20,13 @@ def main():
 
   parser = OptionParser(usage=USAGE, description=DESCRIPTION, epilog=EPILOG)
 
-  # parser.add_option('-s', '--str', dest='str',
-  #   default=OPT_DEFAULTS.get('str'), help='default: %default')
+  parser.add_option('-i', '--indels-file', dest='indels_file',
+    default=OPT_DEFAULTS.get('indels_file'),
+    help="""A file containing indels to test for. Required for BAMRead.indel_at.
+Format: One indel per line, 3 tab-separated columns: 1. chrom, 2. coordinate
+(1-based), "I" or "D" or "ID" for insertion, deletion, or both.""")
   # parser.add_option('-i', '--int', dest='int', type='int',
-  #   default=OPT_DEFAULTS.get('int'), help='')
+  #   default=OPT_DEFAULTS.get('int'), help='default: %default')
   # parser.add_option('-b', '--bool', dest='bool', action='store_const',
   #   const=not OPT_DEFAULTS.get('bool'), default=OPT_DEFAULTS.get('bool'),
   #   help='')
@@ -34,7 +37,7 @@ def main():
     (function, bamfilename) = arguments
   else:
     parser.print_help()
-    fail('Provide a function name and a BAM file.')
+    fail('Error: Provide a function name and a BAM file.')
 
   if function not in FUNCTIONS:
     fail('Error: function "'+function+'" not supported. Please pick one from '
@@ -44,10 +47,10 @@ def main():
 
   bam_reader = Reader(bamfilename)
 
-  FUNCTIONS[function](bam_reader)
+  FUNCTIONS[function](bam_reader, options)
 
 
-def BAMRead_get_indels(bam_reader):
+def BAMRead_get_indels(bam_reader, options):
   for read in bam_reader:
     print "\t".join([read.get_read_name(),str(read.get_position()),read.get_sam_cigar()])
     # print "contains indel at "+str(2280)+": "+str(read.indel_at(2280))
@@ -58,8 +61,36 @@ def BAMRead_get_indels(bam_reader):
       print "\t"+str(deletions)
 
 
-def BAMRead_indel_at(bam_reader):
-  pass
+def BAMRead_indel_at(bam_reader, options):
+  if not options.indels_file:
+    fail('Error: BAMRead.indel_at requires you to specify an indels file.')
+
+  indels = []
+  with open(options.indels_file) as indels_file:
+    for line in indels_file:
+      line = line.strip()
+      if not line:
+        continue
+      fields = line.split()
+      try:          #  coordinate       I or D
+        indels.append((int(fields[1]), fields[2]))
+      except IndexError, ValueError:
+        fail('Error: Bad format in indels file "'+options.indels_file+'"')
+
+  for read in bam_reader:
+    read_qname = read.get_read_name()
+    read_pos   = read.get_position()
+    read_cigar = read.get_sam_cigar()
+    read_end   = read.get_end_position()
+    print "\t".join([read_qname, str(read_pos), read_cigar])
+    for (indel_pos, indel_type) in indels:
+      if read_pos <= indel_pos <= read_end:
+        has_indel = read.indel_at(
+          indel_pos,
+          check_insertions=('I' in indel_type),
+          check_deletions=('D' in indel_type)
+        )
+        print "\t".join([str(indel_pos), indel_type, str(has_indel)])
 
 
 def fail(message):
