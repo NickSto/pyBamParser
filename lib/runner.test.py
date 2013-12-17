@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# TODO:
-# Test on different CIGAR *patterns* from R19S5-clean-CIGAR-types.txt
 import os
 import sys
 from pyBamParser.read import BAMRead
