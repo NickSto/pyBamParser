@@ -160,9 +160,9 @@ class BAMRead( object ):
     def _get_bam_pos( self ):
         return pack_int32( self.get_position( False ) )
 
-    #TODO: TEST!
     def indel_at( self, position, check_insertions=True, check_deletions=True, one_based=True ):
-        """Return True if the read contains an insertion at the given position
+        """Does the read contain an indel at the given position?
+        Return True if the read contains an insertion at the given position
         (position must be the base before the insertion event) or if the read
         contains a deletion where the base at position is deleted. Return False
         otherwise."""
@@ -178,8 +178,8 @@ class BAMRead( object ):
         return False
 
     def get_indels( self, one_based=True ):
-        """Return a data structure containing all indels in the read:
-        return (insertions, deletions)
+        """Return a data structure containing all indels in the read.
+        Returns the tuple (insertions, deletions)
         insertions = [(pos1,ins1), (pos2,ins2)]
         posN = start position (preceding base, VCF-style)
         insN = length of inserted sequence (not including preceding base)

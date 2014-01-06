@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 import os
 import sys
+# hack to prefer local version over installed egg
+if os.environ.get('PYTHONPATH'):
+  newpath = [os.path.abspath(os.environ.get('PYTHONPATH'))]
+  newpath.extend(sys.path)
+  sys.path = newpath
 from pyBamParser.read import BAMRead
 from pyBamParser.bam import Reader
 from optparse import OptionParser
@@ -25,11 +30,6 @@ def main():
     help="""A file containing indels to test for. Required for BAMRead.indel_at.
 Format: One indel per line, 3 tab-separated columns: 1. chrom, 2. coordinate
 (1-based), "I" or "D" or "ID" for insertion, deletion, or both.""")
-  # parser.add_option('-i', '--int', dest='int', type='int',
-  #   default=OPT_DEFAULTS.get('int'), help='default: %default')
-  # parser.add_option('-b', '--bool', dest='bool', action='store_const',
-  #   const=not OPT_DEFAULTS.get('bool'), default=OPT_DEFAULTS.get('bool'),
-  #   help='')
 
   (options, arguments) = parser.parse_args()
 
@@ -53,7 +53,6 @@ Format: One indel per line, 3 tab-separated columns: 1. chrom, 2. coordinate
 def BAMRead_get_indels(bam_reader, options):
   for read in bam_reader:
     print "\t".join([read.get_read_name(),str(read.get_position()),read.get_sam_cigar()])
-    # print "contains indel at "+str(2280)+": "+str(read.indel_at(2280))
     (insertions, deletions) = read.get_indels()
     if insertions:
       print "\t"+str(insertions)
