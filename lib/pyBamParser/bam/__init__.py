@@ -11,6 +11,8 @@ BAM_MAGIC = 'BAM\x01'
 
 SAM_HEADER_NON_TAB_RECORDS = [ '@CO' ]
 SAM_READ_GROUP_RECORD_CODE = '@RG'
+SAM_READ_GROUP_ID_STR = 'ID'
+SAM_READ_GROUP_SAMPLE_STR = 'SM'
 SAM_NO_READ_GROUP_NAME = '__NONE__'
 
 class Reader( object ):
@@ -18,6 +20,7 @@ class Reader( object ):
         self._bgzf_reader = BGZFReader( filename )
         self._references_list = []
         self._buffer = self._bgzf_reader.next()
+        self._read_groups = None
         magic = self.read( 4 )
         assert magic == BAM_MAGIC, "Bad BAM Magic (%s) in %s" % ( magic, self._filename )
         l_text = unpack_int32( self.read( 4 ) )[0]
@@ -41,15 +44,10 @@ class Reader( object ):
         self._buffer = self._buffer[ size: ]
         return data
     
-    def seek( self, offset ):
-        self._buffer = '' #reset buffer on seek
-        return self._bgzf_reader.seek( offset )
-    
     def seek_virtual( self, offset_tuple ):
         file_offset, block_offset = offset_tuple
-        self.seek( file_offset )
-        if block_offset:
-            self.read( block_offset ) #throw away this data
+        self._bgzf_reader.seek( file_offset )
+        self._buffer = self._bgzf_reader.next()[block_offset:]
     
     def next( self ):
         block_size = unpack_int32( self.read( 4 ) )[ 0 ]
@@ -102,6 +100,44 @@ class Reader( object ):
                     rval[rec_code].append( attribs )
         return rval
     
+    def get_read_groups( self ):
+        if self._read_groups is None:
+            headers = self.get_sam_header_dict()
+            if SAM_READ_GROUP_RECORD_CODE in headers:
+                self._read_groups = [ rg[SAM_READ_GROUP_ID_STR] for rg in headers[SAM_READ_GROUP_RECORD_CODE] ]
+            else:
+                self._read_groups = []
+        return self._read_groups
+    
+    def jump( self, seq_name, start, next=True ):
+        assert self._bam_index, Exception( "You must provide a valid BAM index in order to use the jump.")
+        if isinstance( seq_name, basestring ):
+            seq_id = self.get_reference_id_by_name( seq_name )
+        else:
+            seq_id = seq_name  
+        if self._bam_index.jump_to_region( seq_id, start, start+1 ):
+            offset = self._bgzf_reader.tell()
+            buffer = self._buffer
+            read = self.next()
+            read_ref_id = read.get_reference_id()
+            while read_ref_id <= seq_id:
+                if read.get_end_position( one_based=False ) > start and read_ref_id == seq_id:
+                    break
+                offset = self._bgzf_reader.tell()
+                buffer = self._buffer
+                read = self.next()
+                read_ref_id = read.get_reference_id()
+            if next:
+                return read
+            self._bgzf_reader.seek( offset )
+            self._buffer = buffer
+            return True
+        else:
+            if next:
+                return None
+            else:
+                return False
+    
     def get_sam_header_text( self ):
         header_dict = self.get_sam_header_dict()
         if '@SQ' not in header_dict:
@@ -132,6 +168,7 @@ class Reader( object ):
     
     
 class Writer( object ):
+    
     def __init__( self, filename, headers=None, references=None ):
         self._writer = BGZFWriter( filename )
         self._headers = headers or ''
@@ -142,6 +179,7 @@ class Writer( object ):
         self._writer.write( bam_header )
         self._writer.flush() #bam header will have its own bgzf blocks, increases speed for replacing header later
         self._alignment_start_offset = self._writer._fh.tell() #alignment blocks start here, make it easy to replace header
+    
     def write( self, read ):
         if isinstance( read, BAMRead ):
             self._writer.write( read.get_bam_data() )
