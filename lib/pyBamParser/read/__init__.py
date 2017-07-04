@@ -1,11 +1,13 @@
 #Dan Blankenberg
 import struct
+import logging
 
 from ..util.packer import pack_int8, unpack_int8, pack_uint8, unpack_uint8, pack_int16, unpack_int16, pack_uint16, unpack_uint16, pack_int32, unpack_int32, pack_uint32, unpack_uint32, pack_int64, unpack_int64, pack_uint64, unpack_uint64
 from ..util import NULL_CHAR
 
 BAM_NO_QUAL = 0xFF #255
 SEQ_4_BIT_TO_SEQ = list( '=ACMGRSVTWYHKDBN' )
+OP_INTS_TO_CHARS = {0:'M', 1:'I', 2:'D', 3:'N', 4:'S', 5:'H', 6:'P', 7:'=', 8:'X'}
 
 CIGAR_OP = list( 'MIDNSHP=X' )
 
@@ -76,7 +78,7 @@ class BAMRead( object ):
         self._l_read_name = self._bin_mq_nl & 0xff
         self._flag = self._flag_nc >> 16
         self._n_cigar_op = self._flag_nc & 0xff
-        
+
         self.__data = data
         self.__not_parsed_1 = True
         self.__not_parsed_2 = True
@@ -92,6 +94,7 @@ class BAMRead( object ):
         self.__read_group_parsed = False
         self.__reference_name = None
         self.__reference = None
+        self.__contiguous_blocks = None
 
     def __parse_block_1( self ):
         if self.__not_parsed_1:
@@ -235,6 +238,93 @@ class BAMRead( object ):
     def _get_bam_pos( self ):
         return pack_int32( self.get_position( False ) )
 
+    def to_ref_coord( self, read_coord, one_based=True ):
+        if self.__contiguous_blocks is None:
+            cigar = self.get_cigar()
+            ref_pos = self.get_position( one_based=one_based )
+            reverse = self.is_seq_reverse_complement()
+            if reverse:
+                read_len = self.get_seq_len()
+            else:
+                read_len = None
+            self.__contiguous_blocks = self._get_contiguous_blocks( ref_pos, cigar, reverse,
+                                                                    read_len )
+        return self._to_ref_coord( self.__contiguous_blocks, read_coord )
+
+    def _to_ref_coord( self, blocks, read_pos ):
+        for read_start, read_end, ref_start, ref_end, offset in blocks:
+            if read_start <= read_pos < read_end:
+                return read_pos + offset
+        logging.warn('No hit on read coordinate {}.'.format(read_pos))
+
+    def _to_read_coord( self, blocks, ref_pos ):
+        for read_start, read_end, ref_start, ref_end, offset in blocks:
+            if ref_start <= ref_pos <= ref_end:
+                return ref_pos - offset
+        logging.warn('No hit on ref coordinate {}.'.format(ref_pos))
+    
+    def _get_contiguous_blocks( self, ref_pos, cigar, reverse, read_len ):
+        """Parse the CIGAR string to find blocks of aligned bases.
+        Returns a list of blocks. Each block is a 5-tuple:
+        1. The start of the block, in read coordinates.
+        2. The end of the block, in read coordinates.
+        3. The start of the block, in reference coordinates.
+        4. The end of the block, in reference coordinates.
+        5. The offset between read and reference coordinates (offset = ref - read).
+        """
+        #TODO: Handle reversed reads. The CIGAR still walks along from POS, but POS is the (3') end of
+        #      the read, so it's walking backward. So if read_pos starts from the (5') beginning of the
+        #      read, we'll have to compensate in the offset.
+        # CIGAR_OP = list( 'MIDNSHP=X' )
+        ref_pos_start = ref_pos
+        if reverse:
+            direction = -1
+            read_pos = read_len
+        else:
+            direction = 1
+            read_pos = 1
+        read_pos_start = read_pos
+        blocks = []
+        while cigar:
+            cigar_size, cigar_op = cigar.pop( 0 )
+            logging.info('Saw {}{}.'.format(cigar_size, OP_INTS_TO_CHARS[cigar_op]))
+            # 0: M alignment match (can be a sequence match or mismatch)
+            # 3: N skipped region from the reference
+            # 5: H hard clipping (clipped sequences NOT present in SEQ)
+            # 7: = sequence match
+            # 8: X sequence mismatch
+            if cigar_op in ( 0, 3, 5, 7, 8 ):
+                ref_pos += cigar_size
+                read_pos += cigar_size * direction
+                logging.info('Ref now {}, read {}.'.format(ref_pos, read_pos))
+            # 1: I insertion
+            elif cigar_op == 1:
+                self._add_block(blocks, direction, read_pos_start, read_pos, ref_pos_start, ref_pos)
+                read_pos += cigar_size * direction
+                read_pos_start = read_pos
+                ref_pos_start = ref_pos
+            # 2: D deletion from the reference
+            elif cigar_op == 2:
+                self._add_block(blocks, direction, read_pos_start, read_pos, ref_pos_start, ref_pos)
+                ref_pos += cigar_size
+                read_pos_start = read_pos
+                ref_pos_start = ref_pos
+            # 4: S soft clipping (clipped sequences present in SEQ)
+            # 6: P padding (silent deletion from padded reference)
+            elif cigar_op in (4, 6):
+                pass
+            else:
+                print >> logging.warn('unknown cigar_op {} {}'.format(cigar_op, cigar_size))
+        self._add_block(blocks, direction, read_pos_start, read_pos, ref_pos_start, ref_pos)
+        return blocks
+
+    def _add_block(self, blocks, direction, read_pos_start, read_pos, ref_pos_start, ref_pos):
+        offset = ref_pos - read_pos
+        if direction == 1:
+            blocks.append( (read_pos_start, read_pos, ref_pos_start, ref_pos, offset) )
+        else:
+            blocks.append( (read_pos, read_pos_start, ref_pos_start, ref_pos, offset) )
+
     def indel_at( self, position, check_insertions=True, check_deletions=True, one_based=True ):
         """Does the read contain an indel at the given position?
         Return True if the read contains an insertion at the given position
@@ -352,6 +442,9 @@ class BAMRead( object ):
         self.__parse_block_3()
         return struct.pack( "<" + "B" * (  ( self._l_seq + 1 ) / 2 ), *self._seq )
     
+    def get_seq_len( self ):
+        self.__parse_block_3()
+        return len( self._seq_list )
     def get_l_seq( self ):
         return self._l_seq
     def _get_bam_seq_length( self ):
