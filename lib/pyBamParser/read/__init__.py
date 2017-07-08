@@ -95,6 +95,7 @@ class BAMRead( object ):
         self.__reference_name = None
         self.__reference = None
         self.__contiguous_blocks = None
+        self.__indels = None
 
     def __parse_block_1( self ):
         if self.__not_parsed_1:
@@ -239,16 +240,7 @@ class BAMRead( object ):
         return pack_int32( self.get_position( False ) )
 
     def to_ref_coord( self, read_coord, one_based=True ):
-        if self.__contiguous_blocks is None:
-            cigar = self.get_cigar()
-            ref_pos = self.get_position( one_based=one_based )
-            reverse = self.is_seq_reverse_complement()
-            if reverse:
-                read_len = self.get_seq_len()
-            else:
-                read_len = None
-            self.__contiguous_blocks = self._get_contiguous_blocks( ref_pos, cigar, reverse, read_len )
-        return self._to_ref_coord( self.__contiguous_blocks, read_coord )
+        return self._to_ref_coord( self.get_contiguous_blocks( read_coord, one_based=one_based ) )
 
     def _to_ref_coord( self, blocks, read_pos ):
         for read_start, read_end, ref_start, ref_end, offset, direction in blocks:
@@ -259,10 +251,12 @@ class BAMRead( object ):
             if hit:
                 return direction * read_pos + offset
         # logging.warn('No hit on read coordinate {}.'.format(read_pos))
-    
-    def _get_contiguous_blocks( self, ref_pos, cigar, reverse, read_len ):
-        """Parse the CIGAR string to find blocks of aligned bases.
-        Returns a list of blocks. Each block is a 6-tuple:
+
+    #TODO: def _to_read_coord( self, blocks, ref_pos ):
+
+    def get_contiguous_blocks( self, one_based=True ):
+        """Return a list of blocks of aligned bases.
+        Each block is a 6-tuple:
         1. The start of the block, in read coordinates.
         2. The end of the block, in read coordinates.
         3. The start of the block, in reference coordinates.
@@ -270,6 +264,20 @@ class BAMRead( object ):
         5. The offset between read and reference coordinates (offset = ref - direction * read).
         6. The direction of the read (1 for forward, -1 for reverse).
         """
+        # Generate contiguous blocks, if none is cached.
+        if self.__contiguous_blocks is None:
+            cigar = self.get_cigar()
+            ref_pos = self.get_position( one_based=one_based )
+            reverse = self.is_seq_reverse_complement()
+            if reverse:
+                read_len = self.get_seq_len()
+            else:
+                read_len = None
+            self.__contiguous_blocks = self._get_contiguous_blocks( ref_pos, cigar, reverse, read_len )
+        return self.__contiguous_blocks
+
+    def _get_contiguous_blocks( self, ref_pos, cigar, reverse, read_len ):
+        """Do the actual CIGAR string parsing to generate the list of aligned bases."""
         ref_pos_start = ref_pos
         if reverse:
             direction = -1
@@ -344,65 +352,46 @@ class BAMRead( object ):
         deletions = [(pos1,del1), (pos2,del2)]
         posN = start position (preceding base, VCF-style)
         delN = length of deleted sequence (not including preceding base)
+        Note: This does not count any "I" or "D" CIGAR operations at the start or end of a read.
+        It also counts "N" as a deletion.
         """
-        cigar = self.get_cigar() #CIGAR_OP = list( 'MIDNSHP=X' )
+        if self.__indels is None:
+            blocks = self.get_contiguous_blocks( one_based=one_based )
+            reverse = self.is_seq_reverse_complement()
+            self.__indels = self._get_indels( blocks, reverse, one_based=one_based )
+        return self.__indels
+
+    def _get_indels( self, blocks, reverse, one_based=True ):
+        #TODO: Include the cigar operation as a field in the block so this can avoid counting "N"s
+        #      as deletions.
+        if reverse:
+            blocks = reversed(blocks)
         insertions = []
         deletions = []
-        position_offset = 0
-        position_start = self.get_position( one_based=one_based )
-        while cigar:
-            cigar_size, cigar_op = cigar.pop( 0 )
-            if cigar_op in [ 0, 7, 8 ]: #M alignment match (can be a sequence match or mismatch); = sequence match; x sequence mismatch
-                position_offset += cigar_size
-            elif cigar_op == 1: #I insertion
-                insertions.append((position_start + position_offset - 1, cigar_size))
-            elif cigar_op == 2: #D deletion from the reference
-                deletions.append((position_start + position_offset - 1, cigar_size))
-                position_offset += cigar_size
-            elif cigar_op == 3: #N skipped region from the reference
-                position_offset += cigar_size
-            elif cigar_op == 4: #S soft clipping (clipped sequences present in SEQ)
-                pass
-            elif cigar_op == 5: #H hard clipping (clipped sequences NOT present in SEQ)
-                position_offset += cigar_size
-            elif cigar_op == 6: #P padding (silent deletion from padded reference)
-                pass
-            else: #unknown cigar_op
-                print >>sys.stderr, 'unknown cigar_op', cigar_op, cigar_size
+        last_read_end = None
+        last_ref_end = None
+        for read_start, read_end, ref_start, ref_end, offset, direction in blocks:
+            if last_read_end is not None:
+                if read_start == last_read_end:
+                    deletions.append( ( last_ref_end-1, ref_start-last_ref_end ) )
+                else:
+                    insertions.append( ( last_ref_end-1, read_start-last_read_end) )
+            last_read_end = read_end
+            last_ref_end = ref_end
         return (insertions, deletions)
     
     def get_end_position( self, one_based=True ):
+        # Note: The previous version of this seemed incorrect, depending on one's definition of
+        #       the "end position":
+        # For reverse strand reads, it would put the end position at the start (5' end), since it
+        # followed the CIGAR string which begins at the 3' end of reverse reads.
+        # Also, it included H (hard clipped) bases, which would put the end position further than it
+        # should be, since those bases aren't included in the SEQ column or counted in where POS is.
         if self.__zero_based_end_position is None:
-            position_offset = 0
-            self.__parse_block_2()
-            for cigar_size, cigar_op in self._cigar_list:
-                if cigar_op in [ 0, 7, 8 ]: #M alignment match (can be a sequence match or mismatch); = sequence match; x sequence mismatch
-                    position_offset += cigar_size
-                elif cigar_op == 1: #insertion
-                    pass
-                elif cigar_op == 2: #D deletion from the reference
-                    position_offset += cigar_size
-                elif cigar_op == 3: #N skipped region from the reference
-                    #print >>sys.stderr, 'passing cigar_op N skipped', cigar_op, cigar_size
-                    #print >>sys.stderr, self.to_sam()
-                    position_offset += cigar_size
-                elif cigar_op == 4: #S soft clipping (clipped sequences present in SEQ)
-                    #print >>sys.stderr, 'passing cigar_op soft clipping', cigar_op, cigar_size
-                    #print >>sys.stderr, self.to_sam()
-                    pass
-                elif cigar_op == 5: #H hard clipping (clipped sequences NOT present in SEQ)
-                    #print >>sys.stderr, 'passing cigar_op hard clipping', cigar_op, cigar_size
-                    #print >>sys.stderr, self.to_sam()
-                    position_offset += cigar_size
-                elif cigar_op == 6: #P padding (silent deletion from padded reference)
-                    #print >>sys.stderr, 'passing cigar_op padding', cigar_op, cigar_size
-                    #print >>sys.stderr, self.to_sam()
-                    #position_offset += cigar_size
-                    pass
-                else: #unknown cigar_op
-                    print >>sys.stderr, 'unknown cigar_op', cigar_op, cigar_size
-                    #position_offset += cigar_size
-            self.__zero_based_end_position = self._pos + position_offset
+            reverse = self.is_seq_reverse_complement()
+            if reverse:
+                read_len = self.get_seq_len()
+            self.__zero_based_end_position = self.to_ref_coord( read_len )
         return self.__zero_based_end_position + one_based
     
     def get_pnext( self, one_based=True ):
