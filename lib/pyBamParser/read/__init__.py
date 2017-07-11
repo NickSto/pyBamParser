@@ -364,20 +364,36 @@ class BAMRead( object ):
     def _get_indels( self, blocks, reverse, one_based=True ):
         #TODO: Include the cigar operation as a field in the block so this can avoid counting "N"s
         #      as deletions.
-        if reverse:
-            blocks = reversed(blocks)
         insertions = []
         deletions = []
         last_read_end = None
         last_ref_end = None
-        for read_start, read_end, ref_start, ref_end, offset, direction in blocks:
-            if last_read_end is not None:
-                if read_start == last_read_end:
-                    deletions.append( ( last_ref_end-1, ref_start-last_ref_end ) )
-                else:
-                    insertions.append( ( last_ref_end-1, read_start-last_read_end) )
-            last_read_end = read_end
-            last_ref_end = ref_end
+        if reverse:
+            for read_end, read_start, ref_end, ref_start, offset, direction in reversed(blocks):
+                if last_read_end is not None:
+                    if read_start == last_read_end:
+                        del_len = last_ref_end-ref_start
+                        del_start = last_ref_end-del_len-1
+                        deletions.append( ( del_start, del_len ) )
+                    else:
+                        ins_start = last_ref_end-1
+                        ins_len = read_start-last_read_end
+                        insertions.append( ( ins_start, ins_len ) )
+                last_read_end = read_end
+                last_ref_end = ref_end
+        else:
+            for read_start, read_end, ref_start, ref_end, offset, direction in blocks:
+                if last_read_end is not None:
+                    if read_start == last_read_end:
+                        del_start = last_ref_end-1
+                        del_len = ref_start-last_ref_end
+                        deletions.append( ( del_start, del_len ) )
+                    else:
+                        ins_start = last_ref_end-1
+                        ins_len = read_start-last_read_end
+                        insertions.append( ( ins_start, ins_len ) )
+                last_read_end = read_end
+                last_ref_end = ref_end
         return (insertions, deletions)
     
     def get_end_position( self, one_based=True ):
@@ -413,7 +429,6 @@ class BAMRead( object ):
         return self._t_len
     def _get_bam_t_len( self ):
         return pack_int32( self._t_len )
-    
     
     def get_seq( self ):
         if self.__seq_string is None:

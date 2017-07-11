@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 import sys
 import logging
 import argparse
@@ -182,7 +182,7 @@ class CigarGetIndelsTest(unittest.TestCase):
         self._test_read(14640, '241M2I3M2D5M', 163, 251, indels)
 
     def test_MIMIM(self):
-        indels = ([(16569, 39), (16573, 2)], [])
+        indels = ([(16573, 2), (16569, 39)], [])
         self._test_read(16365, '205M39I4M2I1M', 83, 251, indels)
 
     def test_MIMDMSa(self):
@@ -194,11 +194,11 @@ class CigarGetIndelsTest(unittest.TestCase):
         self._test_read(16390, '179M62I2M2D2M6S', 99, 251, indels)
 
     def test_SMDMDM(self):
-        indels = ([], [(6806, 1), (6808, 1)])
+        indels = ([], [(6808, 1), (6806, 1)])
         self._test_read(6800, '3S7M1D1M1D240M', 147, 251, indels)
 
     def test_SMIMIM(self):
-        indels = ([(5979, 1), (5980, 1)], [])
+        indels = ([(5980, 1), (5979, 1)], [])
         self._test_read(5975, '10S5M1I1M1I233M', 83, 251, indels)
 
     def test_MIMIMS(self):
@@ -211,14 +211,14 @@ class CigarGetIndelsTest(unittest.TestCase):
 
     def test_SMIMDM(self):
         indels = ([(7604, 1)], [(7605, 2)])
-        self._test_read(7603, '12S2M1I1M2D235M(7604, 1)', 83, 251, indels)
+        self._test_read(7603, '12S2M1I1M2D235M', 83, 251, indels)
 
     def test_MDMIMDMS(self):
         indels = ([(202, 2)], [(199, 1), (210, 2)])
         self._test_read(1, '199M1D2M2I8M2D2M38S', 99, 251, indels)
 
     def test_SMDMDMDM(self):
-        indels = ([], [(10522, 1), (10527, 1), (10530, 1)])
+        indels = ([], [(10530, 1), (10527, 1), (10522, 1)])
         self._test_read(10517, '32S6M1D4M1D2M1D207M', 147, 251, indels)
 
     def test_MIMIMDMS(self):
