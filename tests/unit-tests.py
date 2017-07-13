@@ -1,10 +1,15 @@
 #!/usr/bin/env python
+import os
 import sys
 import logging
 import argparse
 import unittest
-import pyBamParser.read
 import cigar
+# Path hack to make sure the local pyBamParser loads before the installed version.
+script_dir = os.path.dirname(os.path.realpath(__file__))  # .
+lib_path = os.path.join(os.path.dirname(script_dir), 'lib')  # ../lib
+sys.path.insert(0, lib_path)
+import pyBamParser.read
 
 ARG_DEFAULTS = {'log':sys.stderr, 'volume':logging.WARNING}
 DESCRIPTION = """Run unit(ish) tests."""

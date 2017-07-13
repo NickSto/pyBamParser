@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 import os
 import sys
-# hack to prefer local version over installed egg
-if os.environ.get('PYTHONPATH'):
-  newpath = [os.path.abspath(os.environ.get('PYTHONPATH'))]
-  newpath.extend(sys.path)
-  sys.path = newpath
+# Path hack to make sure the local pyBamParser loads before the installed version.
+script_dir = os.path.dirname(os.path.realpath(__file__))  # .
+lib_path = os.path.join(os.path.dirname(script_dir), 'lib')  # ../lib
+sys.path.insert(0, lib_path)
 from pyBamParser.read import BAMRead
 from pyBamParser.bam import Reader
 from optparse import OptionParser

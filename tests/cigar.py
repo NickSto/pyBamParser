@@ -1,13 +1,18 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import unicode_literals
 import re
+import os
 import sys
 import errno
 import logging
 import argparse
+# Path hack to make sure the local pyBamParser loads before the installed version.
+script_dir = os.path.dirname(os.path.realpath(__file__))  # .
+lib_path = os.path.join(os.path.dirname(script_dir), 'lib')  # ../lib
+sys.path.insert(0, lib_path)
 import pyBamParser.read
 
 OP_CHARS_TO_INTS = {'M':0, 'I':1, 'D':2, 'N':3, 'S':4, 'H':5, 'P':6, '=':7, 'X':8}
