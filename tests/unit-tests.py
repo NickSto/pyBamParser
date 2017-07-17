@@ -187,6 +187,101 @@ for data in CigarGetIndelsTest.test_data:
     setattr(CigarGetIndelsTest, 'test_'+data['name'], test_function)
 
 
+class CigarIndelAtTest(CigarTest):
+
+    @classmethod
+    def make_test(cls, pos, cigar_str, flags, readlen, in_out_pairs):
+        def test(self):
+            read = pyBamParser.read.BAMRead('12345678901234567890123456789012', None)
+            blocks = CigarTest.get_blocks(read, pos, cigar_str, flags, readlen)
+            insertions, deletions = read._get_indels(blocks, flags & 16)
+            for pair in in_out_pairs:
+                indel_at = read._indel_at(pair['coord'],
+                                          insertions,
+                                          deletions,
+                                          check_insertions=pair['check_ins'],
+                                          check_deletions=pair['check_del'])
+                self.assertEqual(indel_at, pair['result'])
+        return test
+
+    test_data = (
+        {'name':'M', 'pos':31, 'cigar':'251M', 'flags':163, 'readlen':251, 'in_out_pairs':(
+            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
+            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'MS', 'pos':111, 'cigar':'205M46S', 'flags':163, 'readlen':251, 'in_out_pairs':(
+            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
+            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'SM', 'pos':1, 'cigar':'3S248M', 'flags':99, 'readlen':251, 'in_out_pairs':(
+            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
+            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'SM', 'pos':1, 'cigar':'52S199M', 'flags':99, 'readlen':251, 'in_out_pairs':(
+            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
+            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'MIM', 'pos':199, 'cigar':'112M1I138M', 'flags':83, 'readlen':251, 'in_out_pairs':(
+            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
+            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'SMS', 'pos':1, 'cigar':'10S156M85S', 'flags':163, 'readlen':251, 'in_out_pairs':(
+            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'SMDM', 'pos':2526, 'cigar':'11S3M1D237M', 'flags':83, 'readlen':251, 'in_out_pairs':(
+            {'coord':1901, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'SMIM', 'pos':554, 'cigar':'38S3M3I207M', 'flags':83, 'readlen':251, 'in_out_pairs':(
+            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
+            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'MIMDM', 'pos':14640, 'cigar':'241M2I3M2D5M', 'flags':163, 'readlen':251, 'in_out_pairs':(
+            {'coord':13605, 'result':True, 'check_ins':True, 'check_del':False},
+        )},
+        {'name':'MIMIM', 'pos':16365, 'cigar':'205M39I4M2I1M', 'flags':83, 'readlen':251, 'in_out_pairs':(
+            {'coord':14885, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'MIMDMS', 'pos':9931, 'cigar':'242M1I3M2D2M3S', 'flags':99, 'readlen':251, 'in_out_pairs':(
+            {'coord':7606, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'SMDMDM', 'pos':6800, 'cigar':'3S7M1D1M1D240M', 'flags':147, 'readlen':251, 'in_out_pairs':(
+            {'coord':6111, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'SMDMIM', 'pos':6109, 'cigar':'66S2M1D9M1I173M', 'flags':83, 'readlen':251, 'in_out_pairs':(
+            {'coord':6111, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'SMIMDM', 'pos':7603, 'cigar':'12S2M1I1M2D235M', 'flags':83, 'readlen':251, 'in_out_pairs':(
+            {'coord':6809, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'MDMIMDMS', 'pos':1, 'cigar':'199M1D2M2I8M2D2M38S', 'flags':99, 'readlen':251, 'in_out_pairs':(
+            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
+            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+    )
+
+for data in CigarIndelAtTest.test_data:
+    test_function = CigarIndelAtTest.make_test(data['pos'],
+                                               data['cigar'],
+                                               data['flags'],
+                                               data['readlen'],
+                                               data['in_out_pairs'])
+    setattr(CigarIndelAtTest, 'test_'+data['name'], test_function)
+
+
 def logging_setup():
     logging.basicConfig(stream=sys.stderr, level=logging.WARNING, format='%(message)s')
     for level in (logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG):
