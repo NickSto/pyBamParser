@@ -9,7 +9,7 @@ import cigar
 script_dir = os.path.dirname(os.path.realpath(__file__))  # .
 lib_path = os.path.join(os.path.dirname(script_dir), 'lib')  # ../lib
 sys.path.insert(0, lib_path)
-import pyBamParser.read
+from pyBamParser.read import BAMRead
 
 ARG_DEFAULTS = {'log':sys.stderr, 'volume':logging.WARNING}
 DESCRIPTION = """Run unit(ish) tests."""
@@ -49,9 +49,9 @@ $ samtools view duplex.down10.bam | grep AACCCAAGTGACTGCTCGCACTTA | ./cigar.py 2
 class CigarTest(unittest.TestCase):
 
     @classmethod
-    def get_blocks(cls, read, pos, cigar_str, flags, readlen):
+    def get_blocks(cls, pos, cigar_str, flags, readlen):
         cigar_list = cigar.split_cigar(cigar_str)
-        blocks = read._get_contiguous_blocks(pos, cigar_list, flags & 16, readlen)
+        blocks = BAMRead._get_contiguous_blocks(pos, cigar_list, flags & 16, readlen)
         logging.info(blocks)
         return blocks
 
@@ -61,10 +61,9 @@ class CigarConversionTest(CigarTest):
     @classmethod
     def make_test(cls, pos, cigar_str, flags, readlen, in_out_pairs):
         def test(self):
-            read = pyBamParser.read.BAMRead('12345678901234567890123456789012', None)
-            blocks = CigarTest.get_blocks(read, pos, cigar_str, flags, readlen)
+            blocks = CigarTest.get_blocks(pos, cigar_str, flags, readlen)
             for read_coord, ref_coord in in_out_pairs:
-                result = read._to_ref_coord(blocks, read_coord)
+                result = BAMRead._to_ref_coord(blocks, read_coord)
                 try:
                     self.assertEqual(ref_coord, result)
                 except AssertionError:
@@ -121,9 +120,8 @@ class CigarGetIndelsTest(CigarTest):
     @classmethod
     def make_test(cls, pos, cigar_str, flags, readlen, expected):
         def test(self):
-            read = pyBamParser.read.BAMRead('12345678901234567890123456789012', None)
-            blocks = CigarTest.get_blocks(read, pos, cigar_str, flags, readlen)
-            indels = read._get_indels(blocks, flags & 16)
+            blocks = CigarTest.get_blocks(pos, cigar_str, flags, readlen)
+            indels = BAMRead._get_indels(blocks, flags & 16)
             self.assertEqual(indels, expected)
         return test
 
@@ -192,15 +190,14 @@ class CigarIndelAtTest(CigarTest):
     @classmethod
     def make_test(cls, pos, cigar_str, flags, readlen, in_out_pairs):
         def test(self):
-            read = pyBamParser.read.BAMRead('12345678901234567890123456789012', None)
-            blocks = CigarTest.get_blocks(read, pos, cigar_str, flags, readlen)
-            insertions, deletions = read._get_indels(blocks, flags & 16)
+            blocks = CigarTest.get_blocks(pos, cigar_str, flags, readlen)
+            insertions, deletions = BAMRead._get_indels(blocks, flags & 16)
             for pair in in_out_pairs:
-                indel_at = read._indel_at(pair['coord'],
-                                          insertions,
-                                          deletions,
-                                          check_insertions=pair['check_ins'],
-                                          check_deletions=pair['check_del'])
+                indel_at = BAMRead._indel_at(pair['coord'],
+                                             insertions,
+                                             deletions,
+                                             check_insertions=pair['check_ins'],
+                                             check_deletions=pair['check_del'])
                 self.assertEqual(indel_at, pair['result'])
         return test
 

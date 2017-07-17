@@ -243,7 +243,8 @@ class BAMRead( object ):
         blocks = self.get_contiguous_blocks( one_based=one_based )
         return self._to_ref_coord( blocks, read_coord )
 
-    def _to_ref_coord( self, blocks, read_pos ):
+    @classmethod
+    def _to_ref_coord( cls, blocks, read_pos ):
         for read_start, read_end, ref_start, ref_end, offset, direction in blocks:
             if direction == 1:
                 hit = read_start <= read_pos < read_end
@@ -277,7 +278,8 @@ class BAMRead( object ):
             self.__contiguous_blocks = self._get_contiguous_blocks( ref_pos, cigar, reverse, read_len )
         return self.__contiguous_blocks
 
-    def _get_contiguous_blocks( self, ref_pos, cigar, reverse, read_len ):
+    @classmethod
+    def _get_contiguous_blocks( cls, ref_pos, cigar, reverse, read_len ):
         """Do the actual CIGAR string parsing to generate the list of aligned bases."""
         ref_pos_start = ref_pos
         if reverse:
@@ -337,7 +339,8 @@ class BAMRead( object ):
         return self._indel_at( position, insertions, deletions, check_insertions=check_insertions,
                                check_deletions=check_deletions )
 
-    def _indel_at( self, position, insertions, deletions, check_insertions=True, check_deletions=True ):
+    @classmethod
+    def _indel_at( cls, position, insertions, deletions, check_insertions=True, check_deletions=True ):
         if check_insertions:
             for insertion in insertions:
                 if insertion[0] == position:
@@ -366,7 +369,8 @@ class BAMRead( object ):
             self.__indels = self._get_indels( blocks, reverse, one_based=one_based )
         return self.__indels
 
-    def _get_indels( self, blocks, reverse, one_based=True ):
+    @classmethod
+    def _get_indels( cls, blocks, reverse, one_based=True ):
         #TODO: Include the cigar operation as a field in the block so this can avoid counting "N"s
         #      as deletions.
         insertions = []
@@ -414,7 +418,8 @@ class BAMRead( object ):
             self.__zero_based_end_position = self._get_end_position( blocks, reverse )
         return self.__zero_based_end_position + one_based
 
-    def _get_end_position( self, blocks, reverse ):
+    @classmethod
+    def _get_end_position( cls, blocks, reverse ):
         """Find the end position by looking for the last ref position in the contiguous blocks.
         This should be the last base aligned between the read and the reference."""
         for read_start, read_end, ref_start, ref_end, offset, direction in blocks:
