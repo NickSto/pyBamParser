@@ -333,7 +333,11 @@ class BAMRead( object ):
         (position must be the base before the insertion event) or if the read
         contains a deletion where the base at position is deleted. Return False
         otherwise."""
-        (insertions, deletions) = self.get_indels( one_based=one_based )
+        insertions, deletions = self.get_indels( one_based=one_based )
+        return self._indel_at( position, insertions, deletions, check_insertions=check_insertions,
+                               check_deletions=check_deletions )
+
+    def _indel_at( self, position, insertions, deletions, check_insertions=True, check_deletions=True ):
         if check_insertions:
             for insertion in insertions:
                 if insertion[0] == position:
