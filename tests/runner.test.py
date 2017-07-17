@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 import os
 import sys
+from optparse import OptionParser
+# Path hack to make sure the local pyBamParser loads before the installed version.
+script_dir = os.path.dirname(os.path.realpath(__file__))  # .
+lib_path = os.path.join(os.path.dirname(script_dir), 'lib')  # ../lib
+sys.path.insert(0, lib_path)
 from pyBamParser.read import BAMRead
 from pyBamParser.bam import Reader
-from optparse import OptionParser
 
 OPT_DEFAULTS = {'str':'', 'int':0, 'float':0.0, 'bool':False}
 USAGE = "USAGE: %prog [options]"
