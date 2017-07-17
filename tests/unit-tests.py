@@ -46,16 +46,24 @@ $ samtools view duplex.down10.bam | grep AACCCAAGTGACTGCTCGCACTTA | wc -l
 $ samtools view duplex.down10.bam | grep AACCCAAGTGACTGCTCGCACTTA | ./cigar.py 255
 """
 
-class CigarConversionTest(unittest.TestCase):
+class CigarTest(unittest.TestCase):
 
     @classmethod
-    def make_test(cls, pos, cigar_str, flags, readlen, expected):
+    def get_blocks(cls, read, pos, cigar_str, flags, readlen):
+        cigar_list = cigar.split_cigar(cigar_str)
+        blocks = read._get_contiguous_blocks(pos, cigar_list, flags & 16, readlen)
+        logging.info(blocks)
+        return blocks
+
+
+class CigarConversionTest(CigarTest):
+
+    @classmethod
+    def make_test(cls, pos, cigar_str, flags, readlen, in_out_pairs):
         def test(self):
             read = pyBamParser.read.BAMRead('12345678901234567890123456789012', None)
-            cigar_list = cigar.split_cigar(cigar_str)
-            blocks = read._get_contiguous_blocks(pos, cigar_list, flags & 16, readlen)
-            logging.info(blocks)
-            for read_coord, ref_coord in expected:
+            blocks = CigarTest.get_blocks(read, pos, cigar_str, flags, readlen)
+            for read_coord, ref_coord in in_out_pairs:
                 result = read._to_ref_coord(blocks, read_coord)
                 try:
                     self.assertEqual(ref_coord, result)
@@ -67,36 +75,36 @@ class CigarConversionTest(unittest.TestCase):
 
     test_data = (
         {'name':'basic', 'pos':781, 'cigar':'284M', 'flags':163, 'readlen':284,
-         'expected':((0, None), (1, 781), (2, 782), (284, 1064), (285, None))},
+         'in_out_pairs':((0, None), (1, 781), (2, 782), (284, 1064), (285, None))},
         {'name':'insertion', 'pos':8112, 'cigar':'159M9I115M', 'flags':99, 'readlen':283,
-         'expected':((159, 8270), (160, None), (168, None), (169, 8271))},
+         'in_out_pairs':((159, 8270), (160, None), (168, None), (169, 8271))},
         {'name':'deletion', 'pos':2995, 'cigar':'111M1D172M', 'flags':99, 'readlen':283,
-         'expected':((111, 3105), (112, 3107))},
+         'in_out_pairs':((111, 3105), (112, 3107))},
         {'name':'left_soft_padding', 'pos':5059, 'cigar':'11S267M', 'flags':99, 'readlen':278,
-         'expected':((11, None), (12, 5059), (13, 5060))},
+         'in_out_pairs':((11, None), (12, 5059), (13, 5060))},
         {'name':'right_soft_padding', 'pos':6274, 'cigar':'255M12S', 'flags':163, 'readlen':267,
-         'expected':((255, 6528), (256, None))},
+         'in_out_pairs':((255, 6528), (256, None))},
         {'name':'reverse', 'pos':6022, 'cigar':'286M', 'flags':83, 'readlen':286,
-         'expected':((1, 6307), (2, 6306), (3, 6305), (286, 6022))},
+         'in_out_pairs':((1, 6307), (2, 6306), (3, 6305), (286, 6022))},
         {'name':'reverse_insertion', 'pos':8027, 'cigar':'248M9I25M', 'flags':83, 'readlen':282,
-         'expected':((1, 8299), (25, 8275), (26, None), (34, None), (35, 8274))},
+         'in_out_pairs':((1, 8299), (25, 8275), (26, None), (34, None), (35, 8274))},
         {'name':'reverse_deletion', 'pos':2840, 'cigar':'266M1D17M', 'flags':83, 'readlen':283,
-         'expected':((1, 3123), (2, 3122), (17, 3107), (18, 3105))},
+         'in_out_pairs':((1, 3123), (2, 3122), (17, 3107), (18, 3105))},
         {'name':'reverse_deletion_toy', 'pos':1001, 'cigar':'100M100D100M', 'flags':83, 'readlen':200,
-         'expected':((1, 1300), (100, 1201), (101, 1100), (200, 1001))},
+         'in_out_pairs':((1, 1300), (100, 1201), (101, 1100), (200, 1001))},
         # The following are taken from Figure 1 of Li et al. 2009 which introduced the SAM format.
         {'name':'Li_r001p', 'pos':7, 'cigar':'8M2I4M1D3M', 'flags':163, 'readlen':17,
-         'expected':((1, 7), (8, 14), (9, None), (10, None), (11, 15), (14, 18), (15, 20))},
+         'in_out_pairs':((1, 7), (8, 14), (9, None), (10, None), (11, 15), (14, 18), (15, 20))},
         {'name':'Li_r002p', 'pos':9, 'cigar':'3S6M1P1I4M', 'flags':0, 'readlen':14,
-         'expected':((1, None), (3, None), (4, 9), (9, 14), (10, None), (11, 15), (14, 18))},
+         'in_out_pairs':((1, None), (3, None), (4, 9), (9, 14), (10, None), (11, 15), (14, 18))},
         {'name':'Li_r003p', 'pos':9, 'cigar':'5H6M', 'flags':0, 'readlen':6,
-         'expected':((0, None), (1, 9), (6, 14), (7, None))},
+         'in_out_pairs':((0, None), (1, 9), (6, 14), (7, None))},
         {'name':'Li_r004p', 'pos':16, 'cigar':'6M14N5M', 'flags':0, 'readlen':11,
-         'expected':((1, 16), (6, 21), (7, 36), (11, 40))},
+         'in_out_pairs':((1, 16), (6, 21), (7, 36), (11, 40))},
         {'name':'Li_r003n', 'pos':29, 'cigar':'6H5M', 'flags':16, 'readlen':5,
-         'expected':((1, 33), (5, 29))},
+         'in_out_pairs':((1, 33), (5, 29))},
         {'name':'Li_r001n', 'pos':37, 'cigar':'9M', 'flags':83, 'readlen':9,
-         'expected':((1, 45), (9, 37))}
+         'in_out_pairs':((1, 45), (9, 37))}
     )
 
 for data in CigarConversionTest.test_data:
@@ -104,19 +112,17 @@ for data in CigarConversionTest.test_data:
                                                   data['cigar'],
                                                   data['flags'],
                                                   data['readlen'],
-                                                  data['expected'])
+                                                  data['in_out_pairs'])
     setattr(CigarConversionTest, 'test_'+data['name'], test_function)
 
 
-class CigarGetIndelsTest(unittest.TestCase):
+class CigarGetIndelsTest(CigarTest):
 
     @classmethod
     def make_test(cls, pos, cigar_str, flags, readlen, expected):
         def test(self):
             read = pyBamParser.read.BAMRead('12345678901234567890123456789012', None)
-            cigar_list = cigar.split_cigar(cigar_str)
-            blocks = read._get_contiguous_blocks(pos, cigar_list, flags & 16, readlen)
-            logging.info(blocks)
+            blocks = CigarTest.get_blocks(read, pos, cigar_str, flags, readlen)
             indels = read._get_indels(blocks, flags & 16)
             self.assertEqual(indels, expected)
         return test
