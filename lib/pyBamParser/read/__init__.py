@@ -240,7 +240,8 @@ class BAMRead( object ):
         return pack_int32( self.get_position( False ) )
 
     def to_ref_coord( self, read_coord, one_based=True ):
-        return self._to_ref_coord( self.get_contiguous_blocks( read_coord, one_based=one_based ) )
+        blocks = self.get_contiguous_blocks( one_based=one_based )
+        return self._to_ref_coord( blocks, read_coord )
 
     def _to_ref_coord( self, blocks, read_pos ):
         for read_start, read_end, ref_start, ref_end, offset, direction in blocks:
