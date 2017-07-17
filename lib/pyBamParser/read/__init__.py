@@ -405,12 +405,22 @@ class BAMRead( object ):
         # Also, it included H (hard clipped) bases, which would put the end position further than it
         # should be, since those bases aren't included in the SEQ column or counted in where POS is.
         if self.__zero_based_end_position is None:
+            blocks = self.get_contiguous_blocks( one_based=False )
             reverse = self.is_seq_reverse_complement()
-            if reverse:
-                read_len = self.get_seq_len()
-            self.__zero_based_end_position = self.to_ref_coord( read_len )
+            self.__zero_based_end_position = self._get_end_position( blocks, reverse )
         return self.__zero_based_end_position + one_based
-    
+
+    def _get_end_position( self, blocks, reverse ):
+        """Find the end position by looking for the last ref position in the contiguous blocks.
+        This should be the last base aligned between the read and the reference."""
+        for read_start, read_end, ref_start, ref_end, offset, direction in blocks:
+            if reverse:
+                max_position = ref_start
+                break
+            else:
+                max_position = ref_end
+        return max_position
+
     def get_pnext( self, one_based=True ):
         return self._next_pos + one_based
     def _get_bam_next_pos( self ):
