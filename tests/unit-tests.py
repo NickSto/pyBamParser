@@ -4,7 +4,7 @@ import sys
 import logging
 import argparse
 import unittest
-import cigar
+import cigar as cigarlib
 # Path hack to make sure the local pyBamParser loads before the installed version.
 script_dir = os.path.dirname(os.path.realpath(__file__))  # .
 lib_path = os.path.join(os.path.dirname(script_dir), 'lib')  # ../lib
@@ -49,26 +49,32 @@ $ samtools view duplex.down10.bam | grep AACCCAAGTGACTGCTCGCACTTA | ./cigar.py 2
 class CigarTest(unittest.TestCase):
 
     @classmethod
-    def get_blocks(cls, pos, cigar_str, flags, readlen):
-        cigar_list = cigar.split_cigar(cigar_str)
+    def get_blocks(cls, pos, cigar, flags, readlen):
+        cigar_list = cigarlib.split_cigar(cigar)
         blocks = BAMRead._get_contiguous_blocks(pos, cigar_list, flags & 16, readlen)
         logging.info(blocks)
         return blocks
+
+    @classmethod
+    def make_tests(cls):
+        for data in cls.test_data:
+            test_function = cls.make_test(**data)
+            setattr(cls, 'test_'+data['name'], test_function)
 
 
 class CigarConversionTest(CigarTest):
 
     @classmethod
-    def make_test(cls, pos, cigar_str, flags, readlen, in_out_pairs):
+    def make_test(cls, name=None, pos=None, cigar=None, flags=None, readlen=None, in_out_pairs=None):
         def test(self):
-            blocks = CigarTest.get_blocks(pos, cigar_str, flags, readlen)
+            blocks = CigarTest.get_blocks(pos, cigar, flags, readlen)
             for read_coord, ref_coord in in_out_pairs:
                 result = BAMRead._to_ref_coord(blocks, read_coord)
                 try:
                     self.assertEqual(ref_coord, result)
                 except AssertionError:
                     logging.warn('Failed {}: {} -> {} (got {} instead)'
-                                 .format(cigar_str, read_coord, ref_coord, result))
+                                 .format(cigar, read_coord, ref_coord, result))
                     raise
         return test
 
@@ -106,21 +112,15 @@ class CigarConversionTest(CigarTest):
          'in_out_pairs':((1, 45), (9, 37))}
     )
 
-for data in CigarConversionTest.test_data:
-    test_function = CigarConversionTest.make_test(data['pos'],
-                                                  data['cigar'],
-                                                  data['flags'],
-                                                  data['readlen'],
-                                                  data['in_out_pairs'])
-    setattr(CigarConversionTest, 'test_'+data['name'], test_function)
+CigarConversionTest.make_tests()
 
 
 class CigarGetIndelsTest(CigarTest):
 
     @classmethod
-    def make_test(cls, pos, cigar_str, flags, readlen, expected):
+    def make_test(cls, name=None, pos=None, cigar=None, flags=None, readlen=None, expected=None):
         def test(self):
-            blocks = CigarTest.get_blocks(pos, cigar_str, flags, readlen)
+            blocks = CigarTest.get_blocks(pos, cigar, flags, readlen)
             indels = BAMRead._get_indels(blocks, flags & 16)
             self.assertEqual(indels, expected)
         return test
@@ -176,21 +176,15 @@ class CigarGetIndelsTest(CigarTest):
          'expected':([(13605, 2), (13614, 1)], [(13615, 2)])},
     )
 
-for data in CigarGetIndelsTest.test_data:
-    test_function = CigarGetIndelsTest.make_test(data['pos'],
-                                                 data['cigar'],
-                                                 data['flags'],
-                                                 data['readlen'],
-                                                 data['expected'])
-    setattr(CigarGetIndelsTest, 'test_'+data['name'], test_function)
+CigarGetIndelsTest.make_tests()
 
 
 class CigarIndelAtTest(CigarTest):
 
     @classmethod
-    def make_test(cls, pos, cigar_str, flags, readlen, in_out_pairs):
+    def make_test(cls, name=None, pos=None, cigar=None, flags=None, readlen=None, in_out_pairs=None):
         def test(self):
-            blocks = CigarTest.get_blocks(pos, cigar_str, flags, readlen)
+            blocks = CigarTest.get_blocks(pos, cigar, flags, readlen)
             insertions, deletions = BAMRead._get_indels(blocks, flags & 16)
             for pair in in_out_pairs:
                 indel_at = BAMRead._indel_at(pair['coord'],
@@ -270,13 +264,7 @@ class CigarIndelAtTest(CigarTest):
         )},
     )
 
-for data in CigarIndelAtTest.test_data:
-    test_function = CigarIndelAtTest.make_test(data['pos'],
-                                               data['cigar'],
-                                               data['flags'],
-                                               data['readlen'],
-                                               data['in_out_pairs'])
-    setattr(CigarIndelAtTest, 'test_'+data['name'], test_function)
+CigarIndelAtTest.make_tests()
 
 
 def logging_setup():
