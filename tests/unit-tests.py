@@ -267,6 +267,56 @@ class CigarIndelAtTest(CigarTest):
 CigarIndelAtTest.make_tests()
 
 
+class CigarEndPositionTest(CigarTest):
+
+    @classmethod
+    def make_test(cls, name=None, pos=None, cigar=None, flags=None, readlen=None, expected=None):
+        def test(self):
+            blocks = CigarTest.get_blocks(pos, cigar, flags, readlen)
+            end_pos = BAMRead._get_end_position(blocks)
+            self.assertEqual(end_pos, expected)
+        return test
+
+    test_data = (
+        # From cigar-varieties.bam:
+        {'name':'Ma', 'pos':1, 'cigar':'251M', 'flags':99, 'readlen':251, 'expected':252},
+        {'name':'Mb', 'pos':31, 'cigar':'251M', 'flags':163, 'readlen':251, 'expected':282},
+        {'name':'MS', 'pos':111, 'cigar':'205M46S', 'flags':163, 'readlen':251, 'expected':316},
+        {'name':'SMa', 'pos':1, 'cigar':'3S248M', 'flags':99, 'readlen':251, 'expected':249},
+        {'name':'SMb', 'pos':1, 'cigar':'52S199M', 'flags':99, 'readlen':251, 'expected':200},
+        {'name':'SMS', 'pos':1, 'cigar':'10S156M85S', 'flags':163, 'readlen':251, 'expected':157},
+        {'name':'MDM', 'pos':2941, 'cigar':'166M1D85M', 'flags':99, 'readlen':251, 'expected':3193},
+        {'name':'MDMr', 'pos':1785, 'cigar':'116M1D135M', 'flags':83, 'readlen':251, 'expected':2037},
+        {'name':'MIMra', 'pos':2, 'cigar':'4M2I245M', 'flags':147, 'readlen':251, 'expected':251},
+        {'name':'MIMrb', 'pos':199, 'cigar':'112M1I138M', 'flags':83, 'readlen':251, 'expected':449},
+        {'name':'MDMS', 'pos':2883, 'cigar':'224M1D26M1S', 'flags':163, 'readlen':251, 'expected':3134},
+        {'name':'MIMS', 'pos':4099, 'cigar':'171M1I11M68S', 'flags':99, 'readlen':251, 'expected':4281},
+        {'name':'SMDMr', 'pos':2526, 'cigar':'11S3M1D237M', 'flags':83, 'readlen':251, 'expected':2767},
+        {'name':'SMIMr', 'pos':554, 'cigar':'38S3M3I207M', 'flags':83, 'readlen':251, 'expected':764},
+        {'name':'MIMDM', 'pos':14640, 'cigar':'241M2I3M2D5M', 'flags':163, 'readlen':251, 'expected':14891},
+        {'name':'MIMIMr', 'pos':16365, 'cigar':'205M39I4M2I1M', 'flags':83, 'readlen':251, 'expected':16575},
+        {'name':'MIMDMSa', 'pos':9931, 'cigar':'242M1I3M2D2M3S', 'flags':99, 'readlen':251, 'expected':10180},
+        {'name':'MIMDMSb', 'pos':16390, 'cigar':'179M62I2M2D2M6S', 'flags':99, 'readlen':251, 'expected':16575},
+        {'name':'MIMIMS', 'pos':11127, 'cigar':'222M3I6M2I5M13S', 'flags':163, 'readlen':251, 'expected':11360},
+        {'name':'SMDMDMr', 'pos':6800, 'cigar':'3S7M1D1M1D240M', 'flags':147, 'readlen':251, 'expected':7050},
+        {'name':'SMDMIMr', 'pos':6109, 'cigar':'66S2M1D9M1I173M', 'flags':83, 'readlen':251, 'expected':6294},
+        {'name':'SMIMDMr', 'pos':7603, 'cigar':'12S2M1I1M2D235M', 'flags':83, 'readlen':251, 'expected':7843},
+        {'name':'SMIMIMr', 'pos':5975, 'cigar':'10S5M1I1M1I233M', 'flags':83, 'readlen':251, 'expected':6214},
+        {'name':'MDMIMDMS', 'pos':1, 'cigar':'199M1D2M2I8M2D2M38S', 'flags':99, 'readlen':251, 'expected':215},
+        {'name':'MIMIMDMS', 'pos':13388, 'cigar':'218M2I9M1I1M2D11M9S', 'flags':163, 'readlen':251, 'expected':13629},
+        {'name':'SMDMDMDMr', 'pos':10517, 'cigar':'32S6M1D4M1D2M1D207M', 'flags':147, 'readlen':251, 'expected':10739},
+        # From Figure 1 of Li et al. 2009:
+        {'name':'r001', 'pos':7, 'cigar':'8M2I4M1D3M', 'flags':163, 'readlen':17, 'expected':23},
+        {'name':'r002', 'pos':9, 'cigar':'3S6M1P1I4M', 'flags':0, 'readlen':14, 'expected':19},
+        {'name':'r003', 'pos':9, 'cigar':'5H6M', 'flags':0, 'readlen':6, 'expected':15},
+        {'name':'r004', 'pos':16, 'cigar':'6M14N5M', 'flags':0, 'readlen':11, 'expected':41},
+        {'name':'r003r', 'pos':29, 'cigar':'6H5M', 'flags':16, 'readlen':5, 'expected':34},
+        {'name':'r001r', 'pos':37, 'cigar':'9M', 'flags':83, 'readlen':9, 'expected':46},
+    )
+
+CigarEndPositionTest.make_tests()
+
+
 def logging_setup():
     logging.basicConfig(stream=sys.stderr, level=logging.WARNING, format='%(message)s')
     for level in (logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG):
