@@ -272,7 +272,7 @@ class BAMRead( object ):
             ref_pos = self.get_position( one_based=one_based )
             reverse = self.is_seq_reverse_complement()
             if reverse:
-                read_len = self.get_seq_len()
+                read_len = self.get_l_seq()
             else:
                 read_len = None
             self.__contiguous_blocks = self._get_contiguous_blocks( ref_pos, cigar, reverse, read_len )
@@ -458,10 +458,7 @@ class BAMRead( object ):
     def _get_bam_seq( self ):
         self.__parse_block_3()
         return struct.pack( "<" + "B" * (  ( self._l_seq + 1 ) / 2 ), *self._seq )
-    
-    def get_seq_len( self ):
-        self.__parse_block_3()
-        return len( self._seq_list )
+
     def get_l_seq( self ):
         return self._l_seq
     def _get_bam_seq_length( self ):
