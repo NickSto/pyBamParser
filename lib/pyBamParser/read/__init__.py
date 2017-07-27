@@ -406,9 +406,12 @@ class BAMRead( object ):
         return (insertions, deletions)
     
     def get_end_position( self, one_based=True ):
-        # Note: The previous version of was incorrect, because it counted H (hard clipped) bases,
-        # which would put the end position further than it should be, since those bases aren't
-        # included in the SEQ column or counted in where POS is.
+        """Get the position of the end of the aligned portion of the sequence.
+        This will always be the "right-most" position, regardless of orientation of the read.
+        So for a read with its 5' end at 100 and its 3' end at 200, this will give 200.
+        And for a reverse-oriented read with its 3' end at 100 and its 5' end at 200, this will
+        still give 200.
+        Note: hard- and soft-clipped bases are not counted."""
         if self.__zero_based_end_position is None:
             blocks = self.get_contiguous_blocks( one_based=False )
             self.__zero_based_end_position = self._get_end_position( blocks )
