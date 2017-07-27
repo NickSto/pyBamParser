@@ -406,28 +406,18 @@ class BAMRead( object ):
         return (insertions, deletions)
     
     def get_end_position( self, one_based=True ):
-        # Note: The previous version of this seemed incorrect, depending on one's definition of
-        #       the "end position":
-        # For reverse strand reads, it would put the end position at the start (5' end), since it
-        # followed the CIGAR string which begins at the 3' end of reverse reads.
-        # Also, it included H (hard clipped) bases, which would put the end position further than it
-        # should be, since those bases aren't included in the SEQ column or counted in where POS is.
+        # Note: The previous version of was incorrect, because it counted H (hard clipped) bases,
+        # which would put the end position further than it should be, since those bases aren't
+        # included in the SEQ column or counted in where POS is.
         if self.__zero_based_end_position is None:
             blocks = self.get_contiguous_blocks( one_based=False )
-            reverse = self.is_seq_reverse_complement()
-            self.__zero_based_end_position = self._get_end_position( blocks, reverse )
+            self.__zero_based_end_position = self._get_end_position( blocks )
         return self.__zero_based_end_position + one_based
 
     @classmethod
-    def _get_end_position( cls, blocks, reverse ):
-        """Find the end position by looking for the last ref position in the contiguous blocks.
-        This should be the last base aligned between the read and the reference."""
+    def _get_end_position( cls, blocks ):
         for read_start, read_end, ref_start, ref_end, offset, direction in blocks:
-            if reverse:
-                max_position = ref_start
-                break
-            else:
-                max_position = ref_end
+            max_position = max(ref_start, ref_end)
         return max_position
 
     def get_pnext( self, one_based=True ):
