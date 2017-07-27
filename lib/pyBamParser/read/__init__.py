@@ -423,6 +423,18 @@ class BAMRead( object ):
             max_position = max(ref_start, ref_end)
         return max_position
 
+    def get_5prime_position( self, one_based=True ):
+        if self.is_seq_reverse_complement():
+            return self.get_end_position( one_based=one_based )
+        else:
+            return self.get_position( one_based=True )
+
+    def get_3prime_position( self, one_based=True ):
+        if self.is_seq_reverse_complement():
+            return self.get_position( one_based=True )
+        else:
+            return self.get_end_position( one_based=one_based )
+
     def get_pnext( self, one_based=True ):
         return self._next_pos + one_based
     def _get_bam_next_pos( self ):
