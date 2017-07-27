@@ -98,17 +98,17 @@ class CigarConversionTest(CigarTest):
         {'name':'reverse_deletion_toy', 'pos':1001, 'cigar':'100M100D100M', 'flags':83, 'readlen':200,
          'in_out_pairs':((1, 1300), (100, 1201), (101, 1100), (200, 1001))},
         # The following are taken from Figure 1 of Li et al. 2009 which introduced the SAM format.
-        {'name':'Li_r001p', 'pos':7, 'cigar':'8M2I4M1D3M', 'flags':163, 'readlen':17,
+        {'name':'Li_r001', 'pos':7, 'cigar':'8M2I4M1D3M', 'flags':163, 'readlen':17,
          'in_out_pairs':((1, 7), (8, 14), (9, None), (10, None), (11, 15), (14, 18), (15, 20))},
-        {'name':'Li_r002p', 'pos':9, 'cigar':'3S6M1P1I4M', 'flags':0, 'readlen':14,
+        {'name':'Li_r002', 'pos':9, 'cigar':'3S6M1P1I4M', 'flags':0, 'readlen':14,
          'in_out_pairs':((1, None), (3, None), (4, 9), (9, 14), (10, None), (11, 15), (14, 18))},
-        {'name':'Li_r003p', 'pos':9, 'cigar':'5H6M', 'flags':0, 'readlen':6,
+        {'name':'Li_r003', 'pos':9, 'cigar':'5H6M', 'flags':0, 'readlen':6,
          'in_out_pairs':((0, None), (1, 9), (6, 14), (7, None))},
-        {'name':'Li_r004p', 'pos':16, 'cigar':'6M14N5M', 'flags':0, 'readlen':11,
+        {'name':'Li_r004', 'pos':16, 'cigar':'6M14N5M', 'flags':0, 'readlen':11,
          'in_out_pairs':((1, 16), (6, 21), (7, 36), (11, 40))},
-        {'name':'Li_r003n', 'pos':29, 'cigar':'6H5M', 'flags':16, 'readlen':5,
+        {'name':'Li_r003r', 'pos':29, 'cigar':'6H5M', 'flags':16, 'readlen':5,
          'in_out_pairs':((1, 33), (5, 29))},
-        {'name':'Li_r001n', 'pos':37, 'cigar':'9M', 'flags':83, 'readlen':9,
+        {'name':'Li_r001r', 'pos':37, 'cigar':'9M', 'flags':83, 'readlen':9,
          'in_out_pairs':((1, 45), (9, 37))}
     )
 
