@@ -243,8 +243,8 @@ class BAMRead( object ):
         blocks = self.get_contiguous_blocks( one_based=one_based )
         return self._to_ref_coord( blocks, read_coord )
 
-    @classmethod
-    def _to_ref_coord( cls, blocks, read_pos ):
+    @staticmethod
+    def _to_ref_coord( blocks, read_pos ):
         for read_start, read_end, ref_start, ref_end, offset, direction in blocks:
             if direction == 1:
                 hit = read_start <= read_pos < read_end
@@ -278,8 +278,8 @@ class BAMRead( object ):
             self.__contiguous_blocks = self._get_contiguous_blocks( ref_pos, cigar, reverse, read_len )
         return self.__contiguous_blocks
 
-    @classmethod
-    def _get_contiguous_blocks( cls, ref_pos, cigar, reverse, read_len ):
+    @staticmethod
+    def _get_contiguous_blocks( ref_pos, cigar, reverse, read_len ):
         """Do the actual CIGAR string parsing to generate the list of aligned bases."""
         ref_pos_start = ref_pos
         if reverse:
@@ -339,8 +339,8 @@ class BAMRead( object ):
         return self._indel_at( position, insertions, deletions, check_insertions=check_insertions,
                                check_deletions=check_deletions )
 
-    @classmethod
-    def _indel_at( cls, position, insertions, deletions, check_insertions=True, check_deletions=True ):
+    @staticmethod
+    def _indel_at( position, insertions, deletions, check_insertions=True, check_deletions=True ):
         if check_insertions:
             for insertion in insertions:
                 if insertion[0] == position:
@@ -369,8 +369,8 @@ class BAMRead( object ):
             self.__indels = self._get_indels( blocks, reverse, one_based=one_based )
         return self.__indels
 
-    @classmethod
-    def _get_indels( cls, blocks, reverse, one_based=True ):
+    @staticmethod
+    def _get_indels( blocks, reverse, one_based=True ):
         #TODO: Include the cigar operation as a field in the block so this can avoid counting "N"s
         #      as deletions.
         insertions = []
@@ -417,8 +417,8 @@ class BAMRead( object ):
             self.__zero_based_end_position = self._get_end_position( blocks )
         return self.__zero_based_end_position + one_based
 
-    @classmethod
-    def _get_end_position( cls, blocks ):
+    @staticmethod
+    def _get_end_position( blocks ):
         for read_start, read_end, ref_start, ref_end, offset, direction in blocks:
             max_position = max(ref_start, ref_end)
         return max_position
