@@ -192,75 +192,113 @@ class CigarIndelAtTest(CigarTest):
                                              deletions,
                                              check_insertions=pair['check_ins'],
                                              check_deletions=pair['check_del'])
-                self.assertEqual(indel_at, pair['result'])
+                try:
+                    self.assertEqual(indel_at, pair['result'])
+                except AssertionError as error:
+                    error.args = (error.args[0] + ' (coord {coord})'.format(**pair),)
+                    raise
         return test
 
     test_data = (
-        {'name':'M', 'pos':31, 'cigar':'251M', 'flags':163, 'readlen':251, 'in_out_pairs':(
-            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
-            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
-            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
-            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
-        )},
-        {'name':'MS', 'pos':111, 'cigar':'205M46S', 'flags':163, 'readlen':251, 'in_out_pairs':(
-            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
-            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
-            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
-            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
-        )},
         {'name':'SM', 'pos':1, 'cigar':'3S248M', 'flags':99, 'readlen':251, 'in_out_pairs':(
-            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
-            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
-            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
-            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':200, 'result':False, 'check_ins':False, 'check_del':True},
+            {'coord':202, 'result':False, 'check_ins':True, 'check_del':False},
+            {'coord':211, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':212, 'result':False, 'check_ins':False, 'check_del':True},
         )},
         {'name':'SM', 'pos':1, 'cigar':'52S199M', 'flags':99, 'readlen':251, 'in_out_pairs':(
-            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
-            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
-            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
-            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
-        )},
-        {'name':'MIM', 'pos':199, 'cigar':'112M1I138M', 'flags':83, 'readlen':251, 'in_out_pairs':(
-            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
-            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
-            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
-            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':200, 'result':False, 'check_ins':False, 'check_del':True},
+            {'coord':202, 'result':False, 'check_ins':True, 'check_del':False},
+            {'coord':211, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':212, 'result':False, 'check_ins':False, 'check_del':True},
         )},
         {'name':'SMS', 'pos':1, 'cigar':'10S156M85S', 'flags':163, 'readlen':251, 'in_out_pairs':(
-            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':200, 'result':False, 'check_ins':False, 'check_del':True},
         )},
-        {'name':'SMDM', 'pos':2526, 'cigar':'11S3M1D237M', 'flags':83, 'readlen':251, 'in_out_pairs':(
-            {'coord':1901, 'result':True, 'check_ins':False, 'check_del':True},
+        {'name':'MDMIMDMS', 'pos':1, 'cigar':'199M1D2M2I8M2D2M38S', 'flags':99, 'readlen':251, 'in_out_pairs':(
+            {'coord':199, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':200, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':200, 'result':False, 'check_ins':True, 'check_del':False},
+            {'coord':200, 'result':False, 'check_ins':False, 'check_del':False},
+            {'coord':201, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
+            {'coord':203, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':204, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':210, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':212, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':213, 'result':False, 'check_ins':True, 'check_del':True},
+        )},
+        {'name':'M', 'pos':31, 'cigar':'251M', 'flags':163, 'readlen':251, 'in_out_pairs':(
+            {'coord':200, 'result':False, 'check_ins':False, 'check_del':True},
+            {'coord':202, 'result':False, 'check_ins':True, 'check_del':False},
+            {'coord':211, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':212, 'result':False, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'MS', 'pos':111, 'cigar':'205M46S', 'flags':163, 'readlen':251, 'in_out_pairs':(
+            {'coord':200, 'result':False, 'check_ins':False, 'check_del':True},
+            {'coord':202, 'result':False, 'check_ins':True, 'check_del':False},
+            {'coord':211, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':212, 'result':False, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'MIM', 'pos':199, 'cigar':'112M1I138M', 'flags':83, 'readlen':251, 'in_out_pairs':(
+            {'coord':309, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':310, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':310, 'result':True, 'check_ins':True, 'check_del':False},
+            {'coord':310, 'result':False, 'check_ins':False, 'check_del':True},
+            {'coord':310, 'result':False, 'check_ins':False, 'check_del':False},
+            {'coord':311, 'result':False, 'check_ins':True, 'check_del':True},
         )},
         {'name':'SMIM', 'pos':554, 'cigar':'38S3M3I207M', 'flags':83, 'readlen':251, 'in_out_pairs':(
-            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
-            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
-            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
-            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':554, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':555, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':556, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':556, 'result':True, 'check_ins':True, 'check_del':False},
+            {'coord':556, 'result':False, 'check_ins':False, 'check_del':True},
+            {'coord':556, 'result':False, 'check_ins':False, 'check_del':False},
+            {'coord':557, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':558, 'result':False, 'check_ins':True, 'check_del':True},
         )},
-        {'name':'MIMDM', 'pos':14640, 'cigar':'241M2I3M2D5M', 'flags':163, 'readlen':251, 'in_out_pairs':(
-            {'coord':13605, 'result':True, 'check_ins':True, 'check_del':False},
-        )},
-        {'name':'MIMIM', 'pos':16365, 'cigar':'205M39I4M2I1M', 'flags':83, 'readlen':251, 'in_out_pairs':(
-            {'coord':14885, 'result':True, 'check_ins':False, 'check_del':True},
-        )},
-        {'name':'MIMDMS', 'pos':9931, 'cigar':'242M1I3M2D2M3S', 'flags':99, 'readlen':251, 'in_out_pairs':(
-            {'coord':7606, 'result':True, 'check_ins':False, 'check_del':True},
-        )},
-        {'name':'SMDMDM', 'pos':6800, 'cigar':'3S7M1D1M1D240M', 'flags':147, 'readlen':251, 'in_out_pairs':(
-            {'coord':6111, 'result':True, 'check_ins':False, 'check_del':True},
+        {'name':'SMDM', 'pos':2526, 'cigar':'11S3M1D237M', 'flags':83, 'readlen':251, 'in_out_pairs':(
+            {'coord':2528, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':2529, 'result':True, 'check_ins':True, 'check_del':True},
+            {'coord':2529, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':2529, 'result':False, 'check_ins':True, 'check_del':False},
+            {'coord':2529, 'result':False, 'check_ins':False, 'check_del':False},
+            {'coord':2530, 'result':False, 'check_ins':True, 'check_del':True},
         )},
         {'name':'SMDMIM', 'pos':6109, 'cigar':'66S2M1D9M1I173M', 'flags':83, 'readlen':251, 'in_out_pairs':(
             {'coord':6111, 'result':True, 'check_ins':False, 'check_del':True},
         )},
-        {'name':'SMIMDM', 'pos':7603, 'cigar':'12S2M1I1M2D235M', 'flags':83, 'readlen':251, 'in_out_pairs':(
+        {'name':'SMDMDM', 'pos':6800, 'cigar':'3S7M1D1M1D240M', 'flags':147, 'readlen':251, 'in_out_pairs':(
+            {'coord':6806, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':6807, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':6808, 'result':False, 'check_ins':True, 'check_del':True},
             {'coord':6809, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':6810, 'result':False, 'check_ins':True, 'check_del':True},
         )},
-        {'name':'MDMIMDMS', 'pos':1, 'cigar':'199M1D2M2I8M2D2M38S', 'flags':99, 'readlen':251, 'in_out_pairs':(
-            {'coord':200, 'result':True, 'check_ins':False, 'check_del':True},
-            {'coord':202, 'result':True, 'check_ins':True, 'check_del':False},
-            {'coord':211, 'result':True, 'check_ins':True, 'check_del':True},
-            {'coord':212, 'result':True, 'check_ins':False, 'check_del':True},
+        {'name':'SMIMDM', 'pos':7603, 'cigar':'12S2M1I1M2D235M', 'flags':83, 'readlen':251, 'in_out_pairs':(
+            {'coord':7603, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':7604, 'result':True, 'check_ins':True, 'check_del':False},
+            {'coord':7605, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':7606, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':7607, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':7608, 'result':False, 'check_ins':True, 'check_del':True},
+        )},
+        {'name':'MIMDMS', 'pos':9931, 'cigar':'242M1I3M2D2M3S', 'flags':99, 'readlen':251, 'in_out_pairs':(
+            {'coord':10172, 'result':True, 'check_ins':True, 'check_del':False},
+            {'coord':10176, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':10177, 'result':True, 'check_ins':False, 'check_del':True},
+        )},
+        {'name':'MIMDM', 'pos':14640, 'cigar':'241M2I3M2D5M', 'flags':163, 'readlen':251, 'in_out_pairs':(
+            {'coord':14883, 'result':False, 'check_ins':True, 'check_del':True},
+            {'coord':14884, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':14885, 'result':True, 'check_ins':False, 'check_del':True},
+            {'coord':14886, 'result':False, 'check_ins':True, 'check_del':True},
+        )},
+        {'name':'MIMIM', 'pos':16365, 'cigar':'205M39I4M2I1M', 'flags':83, 'readlen':251, 'in_out_pairs':(
+            {'coord':16569, 'result':True, 'check_ins':True, 'check_del':False},
         )},
     )
 
