@@ -35,16 +35,6 @@ def main(argv):
         logging.addLevelName(level, level_name.capitalize())
     unittest.main()
 
-"""
-# Find an example of a type of CIGAR string:
-$ samtools view duplex.down10.bam | awk '! and($2, 16) && $3 == "chrM" && $6 ~ /^[0-9]*M[0-9]*S$/ {print $6}' | sort | uniq -c | sort -g -k 1 | head
-# Get the rest of the info for the alignment:
-$ samtools view duplex.down10.bam | awkt '! and($2, 16) && $3 == "chrM" && $6 == "255M12S"' | cut -f -8
-# Check the name is unique:
-$ samtools view duplex.down10.bam | grep AACCCAAGTGACTGCTCGCACTTA | wc -l
-# Try converting some coordinates:
-$ samtools view duplex.down10.bam | grep AACCCAAGTGACTGCTCGCACTTA | ./cigar.py 255
-"""
 
 class CigarTest(unittest.TestCase):
 
